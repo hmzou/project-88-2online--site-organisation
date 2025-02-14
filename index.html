@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calendrier d'activités</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f2f2f2;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    form {
+      margin-bottom: 20px;
+    }
+    input, textarea, button {
+      width: 100%;
+      padding: 10px;
+      margin: 5px 0;
+      box-sizing: border-box;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    .hidden {
+      display: none;
+    }
+    .event {
+      border: 1px solid #ddd;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+    }
+    .participants {
+      margin-top: 10px;
+      font-size: 0.9em;
+      color: #555;
+    }
+    /* Media Queries pour petits écrans */
+    @media (max-width: 600px) {
+      .container {
+        width: 95%;
+        padding: 10px;
+      }
+      input, textarea, button {
+        padding: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Section d'authentification -->
+    <div id="authSection">
+      <h1>Identifiez-vous</h1>
+      <form id="authForm">
+        <input type="text" id="nom" placeholder="Votre nom" required>
+        <input type="text" id="pseudo" placeholder="Votre pseudo fun" required>
+        <input type="file" id="photo" accept="image/*">
+        <button type="submit">S'identifier</button>
+      </form>
+    </div>
+
+    <!-- Section principale -->
+    <div id="mainSection" class="hidden">
+      <h1>Bienvenue, <span id="userPseudo"></span>!</h1>
+      <button id="showEventFormBtn">Créer un événement</button>
+
+      <!-- Formulaire de création d'événement -->
+      <div id="eventFormContainer" class="hidden">
+        <h2>Créer un événement</h2>
+        <form id="createEventForm">
+          <input type="text" id="eventTitle" placeholder="Titre de l'événement" required>
+          <input type="datetime-local" id="eventDate" required>
+          <textarea id="eventDescription" placeholder="Description"></textarea>
+          <input type="text" id="eventLieu" placeholder="Lieu (ex: chez [nom])">
+          <button type="submit">Créer l'événement</button>
+          <button type="button" id="cancelEventCreation">Annuler</button>
+        </form>
+      </div>
+
+      <h2>Calendrier des activités</h2>
+      <div id="eventList">
+        <!-- Les événements s'afficheront ici -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Code JavaScript utilisant les modules Firebase -->
+  <script type="module">
+    // Import des fonctions Firebase depuis le CDN
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-analytics.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      query,
+      orderBy,
+      onSnapshot,
+      updateDoc,
+      doc,
+      getDoc,
+      arrayUnion
+    } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
+
+    // Configuration Firebase (remplace par tes propres valeurs)
+    const firebaseConfig = {
+      apiKey: "AIzaSyBqwIp_MErWnRobwH_vJT9Fgxt6OlRXl88",
+      authDomain: "calendrier-dactivit.firebaseapp.com",
+      projectId: "calendrier-dactivit",
+      storageBucket: "calendrier-dactivit.firebasestorage.app",
+      messagingSenderId: "1036243505535",
+      appId: "1:1036243505535:web:cfddc2d3ef8e581d320a4a",
+      measurementId: "G-E9GVD4JE9H"
+    };
+
+    // Initialisation de Firebase, Analytics et Firestore
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const db = getFirestore(app);
+
+    // Variables globales
+    let currentUser = null;
+
+    // Références aux éléments du DOM
+    const authSection = document.getElementById('authSection');
+    const mainSection = document.getElementById('mainSection');
+    const authForm = document.getElementById('authForm');
+    const userPseudoSpan = document.getElementById('userPseudo');
+    const showEventFormBtn = document.getElementById('showEventFormBtn');
+    const eventFormContainer = document.getElementById('eventFormContainer');
+    const createEventForm = document.getElementById('createEventForm');
+    const cancelEventCreation = document.getElementById('cancelEventCreation');
+    const eventListDiv = document.getElementById('eventList');
+
+    // Gestion de l'authentification
+    authForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const nom = document.getElementById('nom').value.trim();
+      const pseudo = document.getElementById('pseudo').value.trim();
+      const photoInput = document.getElementById('photo');
+      let photoURL = "";
+
+      if(photoInput.files && photoInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          photoURL = event.target.result;
+          createUser(nom, pseudo, photoURL);
+        };
+        reader.readAsDataURL(photoInput.files[0]);
+      } else {
+        createUser(nom, pseudo, photoURL);
+      }
+    });
+
+    function createUser(nom, pseudo, photoURL) {
+      currentUser = { nom, pseudo, photoURL };
+      authSection.classList.add('hidden');
+      mainSection.classList.remove('hidden');
+      userPseudoSpan.textContent = pseudo;
+    }
+
+    // Afficher/Cacher le formulaire de création d'événement
+    showEventFormBtn.addEventListener('click', () => {
+      eventFormContainer.classList.toggle('hidden');
+    });
+    cancelEventCreation.addEventListener('click', () => {
+      eventFormContainer.classList.add('hidden');
+    });
+
+    // Création d'un événement et stockage dans Firestore
+    createEventForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('eventTitle').value.trim();
+      const date = document.getElementById('eventDate').value;
+      const description = document.getElementById('eventDescription').value.trim();
+      const lieu = document.getElementById('eventLieu').value.trim();
+
+      if(title && date) {
+        try {
+          await addDoc(collection(db, 'events'), {
+            title,
+            date,
+            description,
+            lieu,
+            participants: []  // Liste vide au départ
+          });
+          createEventForm.reset();
+          eventFormContainer.classList.add('hidden');
+        } catch (error) {
+          console.error("Erreur lors de l'ajout de l'événement :", error);
+        }
+      }
+    });
+
+    // Récupérer et afficher les événements en temps réel depuis Firestore
+    const eventsQuery = query(collection(db, 'events'), orderBy('date'));
+    onSnapshot(eventsQuery, (snapshot) => {
+      eventListDiv.innerHTML = ""; // Réinitialiser la liste
+      if (snapshot.empty) {
+        eventListDiv.innerHTML = "<p>Aucun événement créé pour le moment.</p>";
+      } else {
+        snapshot.forEach((docSnap) => {
+          const eventData = docSnap.data();
+          const eventDiv = document.createElement('div');
+          eventDiv.className = "event";
+          eventDiv.innerHTML = `
+            <h3>${eventData.title}</h3>
+            <p><strong>Date :</strong> ${new Date(eventData.date).toLocaleString()}</p>
+            ${eventData.description ? `<p><strong>Description :</strong> ${eventData.description}</p>` : ""}
+            ${eventData.lieu ? `<p><strong>Lieu :</strong> ${eventData.lieu}</p>` : ""}
+            <button onclick="participer('${docSnap.id}')">Participer</button>
+            <div class="participants" id="participants-${docSnap.id}">
+              <strong>Participants :</strong> ${eventData.participants && eventData.participants.length ? eventData.participants.map(p => p.pseudo).join(', ') : ''}
+            </div>
+          `;
+          eventListDiv.appendChild(eventDiv);
+        });
+      }
+    });
+
+    // Fonction pour participer à un événement (mise à jour dans Firestore)
+    window.participer = async (eventId) => {
+      const eventRef = doc(db, 'events', eventId);
+      const eventSnap = await getDoc(eventRef);
+      if (eventSnap.exists()) {
+        const eventData = eventSnap.data();
+        if (eventData.participants && eventData.participants.some(p => p.pseudo === currentUser.pseudo)) {
+          alert("Vous participez déjà à cet événement !");
+          return;
+        }
+        await updateDoc(eventRef, {
+          participants: arrayUnion(currentUser)
+        });
+      }
+    };
+  </script>
+</body>
+</html>
