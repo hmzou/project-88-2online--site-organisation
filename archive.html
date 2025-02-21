@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calendrier d'activités - Événements Archivés</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f2f2f2; }
+    .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+    h1, h2 { text-align: center; }
+    .event { border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+    .event img { max-width: 100%; height: auto; margin-top: 10px; }
+    .memoriesGallery img { max-width: 100px; margin: 5px; }
+    nav { text-align: center; margin: 10px 0; }
+    nav a { color: #4CAF50; text-decoration: none; margin: 0 10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <nav>
+      <a href="index.html">Retour aux événements récents</a>
+    </nav>
+    <h1>Événements Archivés</h1>
+    <div id="archiveList">
+      <!-- Les événements archivés s'affichent ici -->
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-analytics.js";
+    import {
+      getFirestore,
+      collection,
+      query,
+      orderBy,
+      onSnapshot
+    } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBR4jNfaNy9A1q2pYYBElUYIYJnrFaWwwU",
+      authDomain: "sitepote.firebaseapp.com",
+      projectId: "sitepote",
+      storageBucket: "sitepote.firebasestorage.app",
+      messagingSenderId: "270750397024",
+      appId: "1:270750397024:web:d1edc81ed7db763cfe4905",
+      measurementId: "G-J3KQ481721"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const db = getFirestore(app);
+    const archiveListDiv = document.getElementById('archiveList');
+
+    const eventsQuery = query(collection(db, 'events'), orderBy('date'));
+    onSnapshot(eventsQuery, (snapshot) => {
+      archiveListDiv.innerHTML = "";
+      const now = new Date();
+      const fiveDaysAgo = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000);
+      if (snapshot.empty) {
+        archiveListDiv.innerHTML = "<p>Aucun événement archivé pour le moment.</p>";
+      } else {
+        snapshot.forEach((docSnap) => {
+          const eventData = docSnap.data();
+          const eventDate = new Date(eventData.date);
+          if (eventDate < fiveDaysAgo) {
+            archiveListDiv.innerHTML += `
+              <div class="event">
+                <h3>${eventData.title}</h3>
+                <p><strong>Date :</strong> ${eventDate.toLocaleString()}</p>
+                ${eventData.description ? `<p><strong>Description :</strong> ${eventData.description}</p>` : ""}
+                ${eventData.lieu ? `<p><strong>Lieu :</strong> ${eventData.lieu}</p>` : ""}
+                ${eventData.eventImage ? `<p><strong>Image avant :</strong></p><img src="${eventData.eventImage}" alt="Image avant l'événement">` : ""}
+                ${eventData.memories && eventData.memories.length > 0 ? `<p><strong>Souvenirs :</strong></p>
+                  <div class="memoriesGallery">
+                    ${eventData.memories.map(memory => `<img src="${memory}" alt="Souvenir">`).join('')}
+                  </div>` : ""}
+              </div>
+            `;
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>
