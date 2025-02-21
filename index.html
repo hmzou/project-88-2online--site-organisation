@@ -1,74 +1,31 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <!-- code update -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Calendrier d'activités</title>
+  <title>Calendrier d'activités - Événements Actuels</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 20px;
-      background: #f2f2f2;
-    }
-    .container {
-      max-width: 800px;
-      margin: auto;
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    }
-    h1, h2 {
-      text-align: center;
-    }
-    form {
-      margin-bottom: 20px;
-    }
-    input, textarea, button {
-      width: 100%;
-      padding: 10px;
-      margin: 5px 0;
-      box-sizing: border-box;
-    }
-    button {
-      background: #4CAF50;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #45a049;
-    }
-    .hidden {
-      display: none;
-    }
-    .event {
-      border: 1px solid #ddd;
-      padding: 10px;
-      margin-bottom: 10px;
-      border-radius: 4px;
-    }
-    .participants {
-      margin-top: 10px;
-      font-size: 0.9em;
-      color: #555;
-    }
-    /* Media Queries pour petits écrans */
-    @media (max-width: 600px) {
-      .container {
-        width: 95%;
-        padding: 10px;
-      }
-      input, textarea, button {
-        padding: 8px;
-      }
-    }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f2f2f2; }
+    .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+    h1, h2 { text-align: center; }
+    form { margin-bottom: 20px; }
+    input, textarea, button { width: 100%; padding: 10px; margin: 5px 0; box-sizing: border-box; }
+    button { background: #4CAF50; color: white; border: none; cursor: pointer; }
+    button:hover { background: #45a049; }
+    .hidden { display: none; }
+    .event { border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+    .participants { margin-top: 10px; font-size: 0.9em; color: #555; }
+    .event img { max-width: 100%; height: auto; margin-top: 10px; }
+    .memoriesGallery img { max-width: 100px; margin: 5px; }
+    nav { text-align: center; margin: 10px 0; }
+    nav a { color: #4CAF50; text-decoration: none; margin: 0 10px; }
   </style>
 </head>
 <body>
   <div class="container">
+    <nav>
+      <a href="archive.html">Voir les événements archivés</a>
+    </nav>
     <!-- Section d'authentification -->
     <div id="authSection">
       <h1>Identifiez-vous</h1>
@@ -93,21 +50,22 @@
           <input type="datetime-local" id="eventDate" required>
           <textarea id="eventDescription" placeholder="Description"></textarea>
           <input type="text" id="eventLieu" placeholder="Lieu (ex: chez [nom])">
+          <label>Image avant l'événement (optionnel) :</label>
+          <input type="file" id="eventImage" accept="image/*">
           <button type="submit">Créer l'événement</button>
           <button type="button" id="cancelEventCreation">Annuler</button>
         </form>
       </div>
 
-      <h2>Calendrier des activités</h2>
+      <h2>Calendrier des activités (événements récents)</h2>
       <div id="eventList">
-        <!-- Les événements s'afficheront ici -->
+        <!-- Les événements récents s'affichent ici -->
       </div>
     </div>
   </div>
 
   <!-- Code JavaScript utilisant Firebase -->
   <script type="module">
-    // Import des fonctions Firebase depuis le CDN (SDK v9)
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-analytics.js";
     import {
@@ -120,10 +78,11 @@
       updateDoc,
       doc,
       getDoc,
-      arrayUnion
+      arrayUnion,
+      arrayRemove
     } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 
-    // Configuration Firebase (modifiez avec vos propres identifiants)
+    // Configuration Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyBR4jNfaNy9A1q2pYYBElUYIYJnrFaWwwU",
       authDomain: "sitepote.firebaseapp.com",
@@ -134,15 +93,11 @@
       measurementId: "G-J3KQ481721"
     };
 
-    // Initialisation de Firebase, Analytics et Firestore
     const app = initializeApp(firebaseConfig);
     const analytics = getAnalytics(app);
     const db = getFirestore(app);
 
-    // Variables globales
     let currentUser = null;
-
-    // Références aux éléments du DOM
     const authSection = document.getElementById('authSection');
     const mainSection = document.getElementById('mainSection');
     const authForm = document.getElementById('authForm');
@@ -153,14 +108,24 @@
     const cancelEventCreation = document.getElementById('cancelEventCreation');
     const eventListDiv = document.getElementById('eventList');
 
-    // Gestion de l'authentification
+    // Vérification de l'authentification via localStorage
+    window.addEventListener('load', () => {
+      const storedUser = localStorage.getItem('currentUser');
+      if (storedUser) {
+        currentUser = JSON.parse(storedUser);
+        authSection.classList.add('hidden');
+        mainSection.classList.remove('hidden');
+        userPseudoSpan.textContent = currentUser.pseudo;
+      }
+    });
+
+    // Authentification
     authForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const nom = document.getElementById('nom').value.trim();
       const pseudo = document.getElementById('pseudo').value.trim();
       const photoInput = document.getElementById('photo');
       let photoURL = "";
-
       if (photoInput.files && photoInput.files[0]) {
         const reader = new FileReader();
         reader.onload = (event) => {
@@ -175,12 +140,13 @@
 
     function createUser(nom, pseudo, photoURL) {
       currentUser = { nom, pseudo, photoURL };
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
       authSection.classList.add('hidden');
       mainSection.classList.remove('hidden');
       userPseudoSpan.textContent = pseudo;
     }
 
-    // Afficher/Cacher le formulaire de création d'événement
+    // Afficher/Cacher le formulaire de création
     showEventFormBtn.addEventListener('click', () => {
       eventFormContainer.classList.toggle('hidden');
     });
@@ -188,58 +154,104 @@
       eventFormContainer.classList.add('hidden');
     });
 
-    // Création d'un événement et stockage dans Firestore
+    // Création d'un événement
     createEventForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const title = document.getElementById('eventTitle').value.trim();
       const date = document.getElementById('eventDate').value;
       const description = document.getElementById('eventDescription').value.trim();
       const lieu = document.getElementById('eventLieu').value.trim();
+      const eventImageInput = document.getElementById('eventImage');
 
-      if (title && date) {
+      const addEventToFirestore = async (eventImageData = "") => {
         try {
           await addDoc(collection(db, 'events'), {
             title,
             date,
             description,
             lieu,
-            participants: []  // Liste vide au départ
+            eventImage: eventImageData,  // Image "avant"
+            memories: [],                // Tableau de souvenirs (images)
+            participants: []
           });
           createEventForm.reset();
           eventFormContainer.classList.add('hidden');
         } catch (error) {
           console.error("Erreur lors de l'ajout de l'événement :", error);
         }
+      };
+
+      if (title && date) {
+        if (eventImageInput.files && eventImageInput.files[0]) {
+          const reader = new FileReader();
+          reader.onload = async (event) => {
+            const eventImageData = event.target.result;
+            await addEventToFirestore(eventImageData);
+          };
+          reader.readAsDataURL(eventImageInput.files[0]);
+        } else {
+          await addEventToFirestore();
+        }
       }
     });
 
-    // Récupérer et afficher les événements en temps réel depuis Firestore
+    // Affichage en temps réel des événements récents (moins de 5 jours passés)
     const eventsQuery = query(collection(db, 'events'), orderBy('date'));
     onSnapshot(eventsQuery, (snapshot) => {
-      eventListDiv.innerHTML = ""; // Réinitialiser la liste
+      eventListDiv.innerHTML = "";
+      const now = new Date();
+      const fiveDaysAgo = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000);
       if (snapshot.empty) {
         eventListDiv.innerHTML = "<p>Aucun événement créé pour le moment.</p>";
       } else {
         snapshot.forEach((docSnap) => {
           const eventData = docSnap.data();
-          const eventDiv = document.createElement('div');
-          eventDiv.className = "event";
-          eventDiv.innerHTML = `
-            <h3>${eventData.title}</h3>
-            <p><strong>Date :</strong> ${new Date(eventData.date).toLocaleString()}</p>
-            ${eventData.description ? `<p><strong>Description :</strong> ${eventData.description}</p>` : ""}
-            ${eventData.lieu ? `<p><strong>Lieu :</strong> ${eventData.lieu}</p>` : ""}
-            <button onclick="participer('${docSnap.id}')">Participer</button>
-            <div class="participants" id="participants-${docSnap.id}">
-              <strong>Participants :</strong> ${eventData.participants && eventData.participants.length ? eventData.participants.map(p => p.pseudo).join(', ') : 'Aucun'}
-            </div>
-          `;
-          eventListDiv.appendChild(eventDiv);
+          const eventDate = new Date(eventData.date);
+          // Afficher uniquement les événements dont la date est postérieure à il y a 5 jours
+          if (eventDate >= fiveDaysAgo) {
+            let participationButtonHtml = "";
+            if (currentUser) {
+              if (eventData.participants && eventData.participants.some(p => p.pseudo === currentUser.pseudo)) {
+                participationButtonHtml = `<button onclick="seDesinscrire('${docSnap.id}')">Ne plus participer</button>`;
+              } else {
+                participationButtonHtml = `<button onclick="participer('${docSnap.id}')">Participer</button>`;
+              }
+            }
+            // Si l'événement est passé, proposer d'ajouter des souvenirs
+            let memoriesHtml = "";
+            if (eventDate < now) {
+              memoriesHtml = `<div id="memoriesContainer-${docSnap.id}">
+                                <input type="file" id="memoryFile-${docSnap.id}" accept="image/*">
+                                <button onclick="ajouterSouvenir('${docSnap.id}')">Ajouter un souvenir</button>
+                              </div>`;
+              if (eventData.memories && eventData.memories.length > 0) {
+                memoriesHtml += `<div class="memoriesGallery">`;
+                eventData.memories.forEach(memory => {
+                  memoriesHtml += `<img src="${memory}" alt="Souvenir">`;
+                });
+                memoriesHtml += `</div>`;
+              }
+            }
+            eventListDiv.innerHTML += `
+              <div class="event">
+                <h3>${eventData.title}</h3>
+                <p><strong>Date :</strong> ${eventDate.toLocaleString()}</p>
+                ${eventData.description ? `<p><strong>Description :</strong> ${eventData.description}</p>` : ""}
+                ${eventData.lieu ? `<p><strong>Lieu :</strong> ${eventData.lieu}</p>` : ""}
+                ${eventData.eventImage ? `<p><strong>Image avant :</strong></p><img src="${eventData.eventImage}" alt="Image avant l'événement">` : ""}
+                ${participationButtonHtml}
+                <div class="participants" id="participants-${docSnap.id}">
+                  <strong>Participants :</strong> ${eventData.participants && eventData.participants.length ? eventData.participants.map(p => p.pseudo).join(', ') : 'Aucun'}
+                </div>
+                ${memoriesHtml}
+              </div>
+            `;
+          }
         });
       }
     });
 
-    // Fonction pour participer à un événement (mise à jour dans Firestore)
+    // Fonction pour participer
     window.participer = async (eventId) => {
       const eventRef = doc(db, 'events', eventId);
       const eventSnap = await getDoc(eventRef);
@@ -249,9 +261,35 @@
           alert("Vous participez déjà à cet événement !");
           return;
         }
-        await updateDoc(eventRef, {
-          participants: arrayUnion(currentUser)
-        });
+        await updateDoc(eventRef, { participants: arrayUnion(currentUser) });
+      }
+    };
+
+    // Fonction pour se désinscrire
+    window.seDesinscrire = async (eventId) => {
+      const eventRef = doc(db, 'events', eventId);
+      const eventSnap = await getDoc(eventRef);
+      if (eventSnap.exists()) {
+        const eventData = eventSnap.data();
+        if (!eventData.participants || !eventData.participants.some(p => p.pseudo === currentUser.pseudo)) {
+          alert("Vous ne participez pas à cet événement !");
+          return;
+        }
+        await updateDoc(eventRef, { participants: arrayRemove(currentUser) });
+      }
+    };
+
+    // Fonction pour ajouter un souvenir (image) à un événement passé
+    window.ajouterSouvenir = async (eventId) => {
+      const fileInput = document.getElementById(`memoryFile-${eventId}`);
+      if (fileInput.files && fileInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          const memoryImageData = event.target.result;
+          const eventRef = doc(db, 'events', eventId);
+          await updateDoc(eventRef, { memories: arrayUnion(memoryImageData) });
+        };
+        reader.readAsDataURL(fileInput.files[0]);
       }
     };
   </script>
