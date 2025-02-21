@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+  <!-- code update -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Calendrier d'activités</title>
@@ -104,9 +105,9 @@
     </div>
   </div>
 
-  <!-- Code JavaScript utilisant les modules Firebase -->
+  <!-- Code JavaScript utilisant Firebase -->
   <script type="module">
-    // Import des fonctions Firebase depuis le CDN
+    // Import des fonctions Firebase depuis le CDN (SDK v9)
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-analytics.js";
     import {
@@ -122,15 +123,15 @@
       arrayUnion
     } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 
-    // Configuration Firebase (remplace par tes propres valeurs)
+    // Configuration Firebase (modifiez avec vos propres identifiants)
     const firebaseConfig = {
-      apiKey: "AIzaSyBqwIp_MErWnRobwH_vJT9Fgxt6OlRXl88",
-      authDomain: "calendrier-dactivit.firebaseapp.com",
-      projectId: "calendrier-dactivit",
-      storageBucket: "calendrier-dactivit.firebasestorage.app",
-      messagingSenderId: "1036243505535",
-      appId: "1:1036243505535:web:cfddc2d3ef8e581d320a4a",
-      measurementId: "G-E9GVD4JE9H"
+      apiKey: "AIzaSyBR4jNfaNy9A1q2pYYBElUYIYJnrFaWwwU",
+      authDomain: "sitepote.firebaseapp.com",
+      projectId: "sitepote",
+      storageBucket: "sitepote.firebasestorage.app",
+      messagingSenderId: "270750397024",
+      appId: "1:270750397024:web:d1edc81ed7db763cfe4905",
+      measurementId: "G-J3KQ481721"
     };
 
     // Initialisation de Firebase, Analytics et Firestore
@@ -160,7 +161,7 @@
       const photoInput = document.getElementById('photo');
       let photoURL = "";
 
-      if(photoInput.files && photoInput.files[0]) {
+      if (photoInput.files && photoInput.files[0]) {
         const reader = new FileReader();
         reader.onload = (event) => {
           photoURL = event.target.result;
@@ -195,7 +196,7 @@
       const description = document.getElementById('eventDescription').value.trim();
       const lieu = document.getElementById('eventLieu').value.trim();
 
-      if(title && date) {
+      if (title && date) {
         try {
           await addDoc(collection(db, 'events'), {
             title,
@@ -230,7 +231,7 @@
             ${eventData.lieu ? `<p><strong>Lieu :</strong> ${eventData.lieu}</p>` : ""}
             <button onclick="participer('${docSnap.id}')">Participer</button>
             <div class="participants" id="participants-${docSnap.id}">
-              <strong>Participants :</strong> ${eventData.participants && eventData.participants.length ? eventData.participants.map(p => p.pseudo).join(', ') : ''}
+              <strong>Participants :</strong> ${eventData.participants && eventData.participants.length ? eventData.participants.map(p => p.pseudo).join(', ') : 'Aucun'}
             </div>
           `;
           eventListDiv.appendChild(eventDiv);
