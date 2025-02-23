@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <!-- code update V2.0-->
+  <!-- code update V2.1 - avec intégration FCM -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Calendrier d'activités - Événements Actuels</title>
@@ -293,6 +293,55 @@
         reader.readAsDataURL(fileInput.files[0]);
       }
     };
+
+    // ----- Intégration Firebase Cloud Messaging (FCM) -----
+    import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging.js";
+
+    // Initialiser le messaging avec l'instance "app"
+    const messaging = getMessaging(app);
+
+    // Fonction pour demander la permission et récupérer le token FCM
+    async function demanderPermissionNotifications() {
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission === "granted") {
+          console.log("Permission de notification accordée.");
+          // Remplacez "YOUR_VAPID_KEY_HERE" par votre clé VAPID depuis la console FCM
+          const fcmToken = await getToken(messaging, { vapidKey: "YOUR_VAPID_KEY_HERE" });
+          console.log("Token FCM :", fcmToken);
+          // Enregistrez ce token dans Firestore ou votre backend si nécessaire
+        } else {
+          console.log("Permission de notification refusée.");
+        }
+      } catch (error) {
+        console.error("Erreur lors de la demande de permission :", error);
+      }
+    }
+
+    // Appel de la fonction pour demander la permission dès le chargement
+    demanderPermissionNotifications();
+
+    // Gestion des messages reçus en foreground
+    onMessage(messaging, (payload) => {
+      console.log("Message reçu en foreground :", payload);
+      new Notification(payload.notification.title, {
+        body: payload.notification.body,
+        icon: payload.notification.icon,
+      });
+    });
+
+    // Enregistrement du Service Worker pour les notifications en arrière-plan
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/firebase-messaging-sw.js')
+        .then((registration) => {
+          console.log("Service Worker enregistré avec succès :", registration);
+        })
+        .catch((error) => {
+          console.error("Erreur lors de l’enregistrement du Service Worker :", error);
+        });
+    }
+    // ----- Fin de l'intégration FCM -----
+
   </script>
 </body>
 </html>
