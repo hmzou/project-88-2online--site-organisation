@@ -213,40 +213,40 @@
             let participationButtonHtml = "";
             if (currentUser) {
               if (eventData.participants && eventData.participants.some(p => p.pseudo === currentUser.pseudo)) {
-                participationButtonHtml = <button onclick="seDesinscrire('${docSnap.id}')">Ne plus participer</button>;
+                participationButtonHtml = `<button onclick="seDesinscrire('${docSnap.id}')">Ne plus participer</button>`;
               } else {
-                participationButtonHtml = <button onclick="participer('${docSnap.id}')">Participer</button>;
+                participationButtonHtml = `<button onclick="participer('${docSnap.id}')">Participer</button>`;
               }
             }
             // Si l'événement est passé, proposer d'ajouter des souvenirs
             let memoriesHtml = "";
             if (eventDate < now) {
-              memoriesHtml = <div id="memoriesContainer-${docSnap.id}">
+              memoriesHtml = `<div id="memoriesContainer-${docSnap.id}">
                                 <input type="file" id="memoryFile-${docSnap.id}" accept="image/*">
                                 <button onclick="ajouterSouvenir('${docSnap.id}')">Ajouter un souvenir</button>
-                              </div>;
+                              </div>`;
               if (eventData.memories && eventData.memories.length > 0) {
-                memoriesHtml += <div class="memoriesGallery">;
+                memoriesHtml += `<div class="memoriesGallery">`;
                 eventData.memories.forEach(memory => {
-                  memoriesHtml += <img src="${memory}" alt="Souvenir">;
+                  memoriesHtml += `<img src="${memory}" alt="Souvenir">`;
                 });
-                memoriesHtml += </div>;
+                memoriesHtml += `</div>`;
               }
             }
-            eventListDiv.innerHTML += 
+            eventListDiv.innerHTML += `
               <div class="event">
                 <h3>${eventData.title}</h3>
                 <p><strong>Date :</strong> ${eventDate.toLocaleString()}</p>
-                ${eventData.description ? <p><strong>Description :</strong> ${eventData.description}</p> : ""}
-                ${eventData.lieu ? <p><strong>Lieu :</strong> ${eventData.lieu}</p> : ""}
-                ${eventData.eventImage ? <p><strong>Image avant :</strong></p><img src="${eventData.eventImage}" alt="Image avant l'événement"> : ""}
+                ${eventData.description ? `<p><strong>Description :</strong> ${eventData.description}</p>` : ""}
+                ${eventData.lieu ? `<p><strong>Lieu :</strong> ${eventData.lieu}</p>` : ""}
+                ${eventData.eventImage ? `<p><strong>Image avant :</strong></p><img src="${eventData.eventImage}" alt="Image avant l'événement">` : ""}
                 ${participationButtonHtml}
                 <div class="participants" id="participants-${docSnap.id}">
                   <strong>Participants :</strong> ${eventData.participants && eventData.participants.length ? eventData.participants.map(p => p.pseudo).join(', ') : 'Aucun'}
                 </div>
                 ${memoriesHtml}
               </div>
-            ;
+            `;
           }
         });
       }
@@ -282,7 +282,7 @@
 
     // Fonction pour ajouter un souvenir (image) à un événement passé
     window.ajouterSouvenir = async (eventId) => {
-      const fileInput = document.getElementById(memoryFile-${eventId});
+      const fileInput = document.getElementById(`memoryFile-${eventId}`);
       if (fileInput.files && fileInput.files[0]) {
         const reader = new FileReader();
         reader.onload = async (event) => {
