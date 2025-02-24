@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <!-- code update V2.1 - avec intégration FCM -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Calendrier d'activités - Événements Actuels</title>
@@ -65,7 +64,6 @@
     </div>
   </div>
 
-  <!-- Code JavaScript utilisant Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-analytics.js";
@@ -83,7 +81,6 @@
       arrayRemove
     } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 
-    // Configuration Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyBR4jNfaNy9A1q2pYYBElUYIYJnrFaWwwU",
       authDomain: "sitepote.firebaseapp.com",
@@ -109,7 +106,6 @@
     const cancelEventCreation = document.getElementById('cancelEventCreation');
     const eventListDiv = document.getElementById('eventList');
 
-    // Vérification de l'authentification via localStorage
     window.addEventListener('load', () => {
       const storedUser = localStorage.getItem('currentUser');
       if (storedUser) {
@@ -120,7 +116,6 @@
       }
     });
 
-    // Authentification
     authForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const nom = document.getElementById('nom').value.trim();
@@ -147,7 +142,6 @@
       userPseudoSpan.textContent = pseudo;
     }
 
-    // Afficher/Cacher le formulaire de création
     showEventFormBtn.addEventListener('click', () => {
       eventFormContainer.classList.toggle('hidden');
     });
@@ -155,7 +149,6 @@
       eventFormContainer.classList.add('hidden');
     });
 
-    // Création d'un événement
     createEventForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const title = document.getElementById('eventTitle').value.trim();
@@ -171,8 +164,8 @@
             date,
             description,
             lieu,
-            eventImage: eventImageData,  // Image "avant"
-            memories: [],                // Tableau de souvenirs (images)
+            eventImage: eventImageData,
+            memories: [],
             participants: []
           });
           createEventForm.reset();
@@ -196,7 +189,6 @@
       }
     });
 
-    // Affichage en temps réel des événements récents (moins de 5 jours passés)
     const eventsQuery = query(collection(db, 'events'), orderBy('date'));
     onSnapshot(eventsQuery, (snapshot) => {
       eventListDiv.innerHTML = "";
@@ -208,7 +200,6 @@
         snapshot.forEach((docSnap) => {
           const eventData = docSnap.data();
           const eventDate = new Date(eventData.date);
-          // Afficher uniquement les événements dont la date est postérieure à il y a 5 jours
           if (eventDate >= fiveDaysAgo) {
             let participationButtonHtml = "";
             if (currentUser) {
@@ -218,13 +209,14 @@
                 participationButtonHtml = `<button onclick="participer('${docSnap.id}')">Participer</button>`;
               }
             }
-            // Si l'événement est passé, proposer d'ajouter des souvenirs
             let memoriesHtml = "";
             if (eventDate < now) {
-              memoriesHtml = `<div id="memoriesContainer-${docSnap.id}">
-                                <input type="file" id="memoryFile-${docSnap.id}" accept="image/*">
-                                <button onclick="ajouterSouvenir('${docSnap.id}')">Ajouter un souvenir</button>
-                              </div>`;
+              memoriesHtml = `
+                <div id="memoriesContainer-${docSnap.id}">
+                  <input type="file" id="memoryFile-${docSnap.id}" accept="image/*">
+                  <button onclick="ajouterSouvenir('${docSnap.id}')">Ajouter un souvenir</button>
+                </div>
+              `;
               if (eventData.memories && eventData.memories.length > 0) {
                 memoriesHtml += `<div class="memoriesGallery">`;
                 eventData.memories.forEach(memory => {
@@ -252,7 +244,6 @@
       }
     });
 
-    // Fonction pour participer
     window.participer = async (eventId) => {
       const eventRef = doc(db, 'events', eventId);
       const eventSnap = await getDoc(eventRef);
@@ -266,7 +257,6 @@
       }
     };
 
-    // Fonction pour se désinscrire
     window.seDesinscrire = async (eventId) => {
       const eventRef = doc(db, 'events', eventId);
       const eventSnap = await getDoc(eventRef);
@@ -280,13 +270,12 @@
       }
     };
 
-    // Fonction pour ajouter un souvenir (image) à un événement passé
     window.ajouterSouvenir = async (eventId) => {
       const fileInput = document.getElementById(`memoryFile-${eventId}`);
       if (fileInput.files && fileInput.files[0]) {
         const reader = new FileReader();
-        reader.onload = async (event) => {
-          const memoryImageData = event.target.result;
+        reader.onload = async (e) => {
+          const memoryImageData = e.target.result;
           const eventRef = doc(db, 'events', eventId);
           await updateDoc(eventRef, { memories: arrayUnion(memoryImageData) });
         };
@@ -294,22 +283,17 @@
       }
     };
 
-    // ----- Intégration Firebase Cloud Messaging (FCM) -----
     import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging.js";
 
-    // Initialiser le messaging avec l'instance "app"
     const messaging = getMessaging(app);
 
-    // Fonction pour demander la permission et récupérer le token FCM
     async function demanderPermissionNotifications() {
       try {
         const permission = await Notification.requestPermission();
         if (permission === "granted") {
           console.log("Permission de notification accordée.");
-          // Remplacez "YOUR_VAPID_KEY_HERE" par votre clé VAPID depuis la console FCM
           const fcmToken = await getToken(messaging, { vapidKey: "YOUR_VAPID_KEY_HERE" });
           console.log("Token FCM :", fcmToken);
-          // Enregistrez ce token dans Firestore ou votre backend si nécessaire
         } else {
           console.log("Permission de notification refusée.");
         }
@@ -318,10 +302,8 @@
       }
     }
 
-    // Appel de la fonction pour demander la permission dès le chargement
     demanderPermissionNotifications();
 
-    // Gestion des messages reçus en foreground
     onMessage(messaging, (payload) => {
       console.log("Message reçu en foreground :", payload);
       new Notification(payload.notification.title, {
@@ -330,7 +312,6 @@
       });
     });
 
-    // Enregistrement du Service Worker pour les notifications en arrière-plan
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/firebase-messaging-sw.js')
         .then((registration) => {
@@ -340,8 +321,6 @@
           console.error("Erreur lors de l’enregistrement du Service Worker :", error);
         });
     }
-    // ----- Fin de l'intégration FCM -----
-
   </script>
 </body>
 </html>
