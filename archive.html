@@ -56,7 +56,7 @@
     onSnapshot(eventsQuery, (snapshot) => {
       archiveListDiv.innerHTML = "";
       const now = new Date();
-      const fiveDaysAgo = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000);
+      const fiveDaysAgo = new Date(now.getTime() - 1 * 3 * 60 * 60 * 1000);
       if (snapshot.empty) {
         archiveListDiv.innerHTML = "<p>Aucun événement archivé pour le moment.</p>";
       } else {
