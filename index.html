@@ -193,7 +193,7 @@
     onSnapshot(eventsQuery, (snapshot) => {
       eventListDiv.innerHTML = "";
       const now = new Date();
-      const fiveDaysAgo = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000);
+      const fiveDaysAgo = new Date(now.getTime() - 1 * 4 * 60 * 60 * 1000);
       if (snapshot.empty) {
         eventListDiv.innerHTML = "<p>Aucun événement créé pour le moment.</p>";
       } else {
