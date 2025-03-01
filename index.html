@@ -19,6 +19,7 @@
     .memoriesGallery img { max-width: 100px; margin: 5px; }
     nav { text-align: center; margin: 10px 0; }
     nav a { color: #4CAF50; text-decoration: none; margin: 0 10px; }
+    .user-options { text-align: center; margin-top: 10px; }
   </style>
 </head>
 <body>
@@ -40,6 +41,10 @@
     <!-- Section principale -->
     <div id="mainSection" class="hidden">
       <h1>Bienvenue, <span id="userName"></span>!</h1>
+      <!-- Bouton pour changer les informations utilisateur -->
+      <div class="user-options">
+        <button id="modifierInfosBtn">Modifier mes informations</button>
+      </div>
       <button id="showEventFormBtn">Créer un événement</button>
 
       <!-- Formulaire de création d'événement -->
@@ -105,6 +110,7 @@
     const createEventForm = document.getElementById('createEventForm');
     const cancelEventCreation = document.getElementById('cancelEventCreation');
     const eventListDiv = document.getElementById('eventList');
+    const modifierInfosBtn = document.getElementById('modifierInfosBtn');
 
     window.addEventListener('load', () => {
       const storedUser = localStorage.getItem('currentUser');
@@ -144,6 +150,16 @@
       // Optionnel : sauvegarder l'utilisateur dans Firestore pour les notifications par email
       // await addDoc(collection(db, 'users'), currentUser);
     }
+
+    // Fonction permettant de revenir en arrière pour modifier les informations
+    modifierInfosBtn.addEventListener('click', () => {
+      // Supprimer l'utilisateur actuel
+      localStorage.removeItem('currentUser');
+      currentUser = null;
+      // Réinitialiser l'affichage
+      authSection.classList.remove('hidden');
+      mainSection.classList.add('hidden');
+    });
 
     showEventFormBtn.addEventListener('click', () => {
       eventFormContainer.classList.toggle('hidden');
