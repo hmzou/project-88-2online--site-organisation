@@ -148,7 +148,7 @@
       userNameSpan.textContent = nom;
       
       // Optionnel : sauvegarder l'utilisateur dans Firestore pour les notifications par email
-      // await addDoc(collection(db, 'users'), currentUser);
+       await addDoc(collection(db, 'users'), currentUser);
     }
 
     // Fonction permettant de revenir en arrière pour modifier les informations
