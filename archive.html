@@ -34,7 +34,10 @@
       collection,
       query,
       orderBy,
-      onSnapshot
+      onSnapshot,
+      updateDoc,
+      doc,
+      arrayUnion
     } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -52,18 +55,36 @@
     const db = getFirestore(app);
     const archiveListDiv = document.getElementById('archiveList');
 
+    // Seuil d'archivage : 3 heures avant l'instant actuel
+    const now = new Date();
+    const archiveThreshold = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+
     const eventsQuery = query(collection(db, 'events'), orderBy('date'));
     onSnapshot(eventsQuery, (snapshot) => {
       archiveListDiv.innerHTML = "";
-      const now = new Date();
-      const fiveDaysAgo = new Date(now.getTime() - 1 * 3 * 60 * 60 * 1000);
       if (snapshot.empty) {
         archiveListDiv.innerHTML = "<p>Aucun événement archivé pour le moment.</p>";
       } else {
         snapshot.forEach((docSnap) => {
           const eventData = docSnap.data();
           const eventDate = new Date(eventData.date);
-          if (eventDate < fiveDaysAgo) {
+          // Afficher uniquement les événements archivés
+          if (eventDate < archiveThreshold) {
+            let memoriesHtml = "";
+            // Zone d'ajout de souvenirs pour les événements archivés
+            memoriesHtml += `
+              <div id="memoriesContainer-${docSnap.id}">
+                <input type="file" id="memoryFile-${docSnap.id}" accept="image/*" multiple>
+                <button onclick="ajouterSouvenir('${docSnap.id}')">Ajouter des souvenirs</button>
+              </div>
+            `;
+            if (eventData.memories && eventData.memories.length > 0) {
+              memoriesHtml += `<div class="memoriesGallery">`;
+              eventData.memories.forEach(memory => {
+                memoriesHtml += `<img src="${memory}" alt="Souvenir">`;
+              });
+              memoriesHtml += `</div>`;
+            }
             archiveListDiv.innerHTML += `
               <div class="event">
                 <h3>${eventData.title}</h3>
@@ -71,18 +92,30 @@
                 ${eventData.description ? `<p><strong>Description :</strong> ${eventData.description}</p>` : ""}
                 ${eventData.lieu ? `<p><strong>Lieu :</strong> ${eventData.lieu}</p>` : ""}
                 ${eventData.eventImage ? `<p><strong>Image avant :</strong></p><img src="${eventData.eventImage}" alt="Image avant l'événement">` : ""}
-                ${eventData.memories && eventData.memories.length > 0 ? `
-                  <p><strong>Souvenirs :</strong></p>
-                  <div class="memoriesGallery">
-                    ${eventData.memories.map(memory => `<img src="${memory}" alt="Souvenir">`).join('')}
-                  </div>
-                ` : ""}
+                ${memoriesHtml}
               </div>
             `;
           }
         });
       }
     });
+
+    window.ajouterSouvenir = async (eventId) => {
+      const fileInput = document.getElementById(`memoryFile-${eventId}`);
+      if (fileInput.files && fileInput.files.length > 0) {
+        for (let i = 0; i < fileInput.files.length; i++) {
+          const file = fileInput.files[i];
+          const reader = new FileReader();
+          reader.onload = async (e) => {
+            const memoryImageData = e.target.result;
+            const eventRef = doc(db, 'events', eventId);
+            await updateDoc(eventRef, { memories: arrayUnion(memoryImageData) });
+          };
+          reader.readAsDataURL(file);
+        }
+        fileInput.value = '';
+      }
+    };
   </script>
 </body>
 </html>
