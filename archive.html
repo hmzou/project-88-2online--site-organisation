@@ -34,6 +34,7 @@
       collection,
       query,
       orderBy,
+      where,
       onSnapshot,
       updateDoc,
       doc,
@@ -58,8 +59,16 @@
     // Seuil d'archivage : 3 heures avant l'instant actuel
     const now = new Date();
     const archiveThreshold = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+    // Convertir en ISO pour la comparaison dans la requête
+    const thresholdISO = archiveThreshold.toISOString();
 
-    const eventsQuery = query(collection(db, 'events'), orderBy('date'));
+    // Requête pour récupérer uniquement les événements archivés (date < thresholdISO)
+    const eventsQuery = query(
+      collection(db, 'events'),
+      where('date', '<', thresholdISO),
+      orderBy('date')
+    );
+
     onSnapshot(eventsQuery, (snapshot) => {
       archiveListDiv.innerHTML = "";
       if (snapshot.empty) {
@@ -68,34 +77,31 @@
         snapshot.forEach((docSnap) => {
           const eventData = docSnap.data();
           const eventDate = new Date(eventData.date);
-          // Afficher uniquement les événements archivés
-          if (eventDate < archiveThreshold) {
-            let memoriesHtml = "";
-            // Zone d'ajout de souvenirs pour les événements archivés
-            memoriesHtml += `
-              <div id="memoriesContainer-${docSnap.id}">
-                <input type="file" id="memoryFile-${docSnap.id}" accept="image/*" multiple>
-                <button onclick="ajouterSouvenir('${docSnap.id}')">Ajouter des souvenirs</button>
-              </div>
-            `;
-            if (eventData.memories && eventData.memories.length > 0) {
-              memoriesHtml += `<div class="memoriesGallery">`;
-              eventData.memories.forEach(memory => {
-                memoriesHtml += `<img src="${memory}" alt="Souvenir">`;
-              });
-              memoriesHtml += `</div>`;
-            }
-            archiveListDiv.innerHTML += `
-              <div class="event">
-                <h3>${eventData.title}</h3>
-                <p><strong>Date :</strong> ${eventDate.toLocaleString()}</p>
-                ${eventData.description ? `<p><strong>Description :</strong> ${eventData.description}</p>` : ""}
-                ${eventData.lieu ? `<p><strong>Lieu :</strong> ${eventData.lieu}</p>` : ""}
-                ${eventData.eventImage ? `<p><strong>Image avant :</strong></p><img src="${eventData.eventImage}" alt="Image avant l'événement">` : ""}
-                ${memoriesHtml}
-              </div>
-            `;
+          let memoriesHtml = "";
+          // Zone d'ajout de souvenirs pour l'événement archivé
+          memoriesHtml += `
+            <div id="memoriesContainer-${docSnap.id}">
+              <input type="file" id="memoryFile-${docSnap.id}" accept="image/*" multiple>
+              <button onclick="ajouterSouvenir('${docSnap.id}')">Ajouter des souvenirs</button>
+            </div>
+          `;
+          if (eventData.memories && eventData.memories.length > 0) {
+            memoriesHtml += `<div class="memoriesGallery">`;
+            eventData.memories.forEach(memory => {
+              memoriesHtml += `<img src="${memory}" alt="Souvenir">`;
+            });
+            memoriesHtml += `</div>`;
           }
+          archiveListDiv.innerHTML += `
+            <div class="event">
+              <h3>${eventData.title}</h3>
+              <p><strong>Date :</strong> ${eventDate.toLocaleString()}</p>
+              ${eventData.description ? `<p><strong>Description :</strong> ${eventData.description}</p>` : ""}
+              ${eventData.lieu ? `<p><strong>Lieu :</strong> ${eventData.lieu}</p>` : ""}
+              ${eventData.eventImage ? `<p><strong>Image avant :</strong></p><img src="${eventData.eventImage}" alt="Image avant l'événement">` : ""}
+              ${memoriesHtml}
+            </div>
+          `;
         });
       }
     });
